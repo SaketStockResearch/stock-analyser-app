@@ -3,6 +3,9 @@ import os
 from openai import OpenAI
 from PyPDF2 import PdfReader
 
+
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 st.set_page_config(page_title="Stock Transcript Analyzer", layout="wide")
 st.title("📊 Stock Earnings Transcript Analyzer")
 
@@ -38,12 +41,13 @@ def generate_gpt_summary(text):
     """
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo",  # SAFE CHOICE for all keys
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
     )
 
     return response.choices[0].message.content.strip()
+
 
 
 # Upload and extract
