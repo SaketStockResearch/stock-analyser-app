@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-import openai
+from openai import OpenAI
 from PyPDF2 import PdfReader
 
 st.set_page_config(page_title="Stock Transcript Analyzer", layout="wide")
@@ -22,10 +22,14 @@ def extract_text_from_pdf(file):
         text += page.extract_text() or ""
     return text
 
+from openai import OpenAI
+
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 def generate_gpt_summary(text):
     prompt = f"""
     You are a financial analyst assistant. Read the following earnings call transcript and extract key information:
-    
+
     1. Summary of Management Commentary
     2. Key financial metrics (Revenue, EPS, Guidance)
     3. Notable changes from previous quarter
@@ -33,16 +37,17 @@ def generate_gpt_summary(text):
     5. Overall sentiment (positive/neutral/negative)
 
     Transcript:
-    {text[:4000]}  # Limit for token safety
+    {text[:4000]}
     """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4",  # you can use gpt-3.5-turbo if you prefer
+    response = client.chat.completions.create(
+        model="gpt-4",  # You can change to "gpt-3.5-turbo"
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
     )
 
     return response.choices[0].message.content.strip()
+
 
 # Upload and extract
 if uploaded_files:
