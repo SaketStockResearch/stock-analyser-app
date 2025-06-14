@@ -6,9 +6,6 @@ from PyPDF2 import PdfReader
 st.set_page_config(page_title="Stock Transcript Analyzer", layout="wide")
 st.title("📊 Stock Earnings Transcript Analyzer")
 
-# Load API key from Streamlit Secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-
 uploaded_files = st.file_uploader("Upload earnings transcripts (PDF or TXT)", type=['pdf', 'txt'], accept_multiple_files=True)
 
 # Store uploaded files in session state
