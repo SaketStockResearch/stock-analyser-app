@@ -17,31 +17,32 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text()
     return text
 
-def generate_gpt_summary(text):
-    if not text or len(text.strip()) == 0:
+def generate_gpt_summary(text: str) -> str:
+    if not text.strip():
         return "No text found in the document."
 
-    prompt = f"""
-    You are a financial analyst assistant. Read the following earnings call transcript and extract key information:
+    prompt = f"""You are a financial analyst assistant. Read the following earnings call transcript and extract key information:
 
-    1. Summary of Management Commentary
-    2. Key financial metrics (Revenue, EPS, Guidance)
-    3. Notable changes from previous quarter
-    4. Any identified risks or opportunities
-    5. Overall sentiment (positive/neutral/negative)
+1. Summary of Management Commentary
+2. Key financial metrics (Revenue, EPS, Guidance)
+3. Notable changes from previous quarter
+4. Identified risks or opportunities
+5. Overall sentiment (positive / neutral / negative)
 
-    Transcript:
-    {text[:4000]}  # Limit to avoid token overflow
-    """
+Transcript:
+{text[:4000]}
+"""
 
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-    )
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+        )
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"❌ GPT Error: {str(e)}"
+        import traceback
+        return f"❌ GPT Error:\n\n{traceback.format_exc()}"
 
 if uploaded_file:
     st.success("File uploaded successfully.")
