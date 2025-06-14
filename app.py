@@ -1,20 +1,19 @@
 import streamlit as st
 import os
+import openai
 from PyPDF2 import PdfReader
-import tempfile
 
-st.set_page_config(page_title="Stock Research Assistant", layout="wide")
-
+st.set_page_config(page_title="Stock Transcript Analyzer", layout="wide")
 st.title("📊 Stock Earnings Transcript Analyzer")
 
-st.markdown("""
-Upload your earnings call transcripts or quarterly reports (PDF or TXT).  
-We’ll extract and analyze them in the next step.
-""")
+# Load API key from Streamlit Secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-uploaded_files = st.file_uploader("Upload Earnings Reports", type=['pdf', 'txt'], accept_multiple_files=True)
+uploaded_files = st.file_uploader("Upload earnings transcripts (PDF or TXT)", type=['pdf', 'txt'], accept_multiple_files=True)
 
-documents = {}
+# Store uploaded files in session state
+if "documents" not in st.session_state:
+    st.session_state.documents = {}
 
 def extract_text_from_pdf(file):
     pdf_reader = PdfReader(file)
@@ -23,11 +22,29 @@ def extract_text_from_pdf(file):
         text += page.extract_text() or ""
     return text
 
-# Store extracted documents in session state
-if "documents" not in st.session_state:
-    st.session_state.documents = {}
+def generate_gpt_summary(text):
+    prompt = f"""
+    You are a financial analyst assistant. Read the following earnings call transcript and extract key information:
+    
+    1. Summary of Management Commentary
+    2. Key financial metrics (Revenue, EPS, Guidance)
+    3. Notable changes from previous quarter
+    4. Any identified risks or opportunities
+    5. Overall sentiment (positive/neutral/negative)
 
-# Process uploaded files
+    Transcript:
+    {text[:4000]}  # Limit for token safety
+    """
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4",  # you can use gpt-3.5-turbo if you prefer
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+    )
+
+    return response.choices[0].message.content.strip()
+
+# Upload and extract
 if uploaded_files:
     for file in uploaded_files:
         if file.name not in st.session_state.documents:
@@ -35,14 +52,22 @@ if uploaded_files:
                 text = extract_text_from_pdf(file)
             else:
                 text = file.read().decode("utf-8")
-            st.session_state.documents[file.name] = text
-    st.success(f"Uploaded {len(uploaded_files)} file(s).")
+            st.session_state.documents[file.name] = {"text": text, "summary": None}
+    st.success("Files uploaded and extracted!")
 
-# Display uploaded files
-st.subheader("Uploaded Files")
-if st.session_state.documents:
-    for filename, content in st.session_state.documents.items():
-        with st.expander(filename):
-            st.text_area("Extracted Text", value=content[:3000], height=300, disabled=True)
-else:
-    st.info("No documents uploaded yet.")
+# Display and summarize
+st.subheader("📄 Uploaded Reports")
+for filename, data in st.session_state.documents.items():
+    with st.expander(f"{filename}"):
+        st.text_area("Transcript Preview", value=data["text"][:2000], height=250, disabled=True)
+
+        if data["summary"] is None:
+            if st.button(f"🧠 Generate GPT Summary for {filename}"):
+                with st.spinner("Generating summary..."):
+                    summary = generate_gpt_summary(data["text"])
+                    st.session_state.documents[filename]["summary"] = summary
+                    st.success("Summary generated!")
+
+        if data["summary"]:
+            st.markdown("### 📌 GPT Summary")
+            st.markdown(st.session_state.documents[filename]["summary"])
