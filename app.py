@@ -40,6 +40,8 @@ def generate_gpt_summary(text):
         temperature=0.3,
     )
     return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"❌ GPT Error: {str(e)}"
 
 if uploaded_file:
     st.success("File uploaded successfully.")
